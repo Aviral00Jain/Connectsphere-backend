@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>ConnectSphere Web</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+</head>
+<body>
+<header class="site-header">
+    <nav>
+        <a th:href="@{/home}">Home</a>
+        <a th:href="@{/feed}">Feed</a>
+        <a th:href="@{/search/users}">Search Users</a>
+        <a th:href="@{/search/posts}">Search Posts</a>
+        <a th:href="@{/notifications}">Notifications</a>
+        <a th:href="@{/admin}">Admin</a>
+    </nav>
+</header>
+<main class="container" th:fragment="layout(content)">
+    <div th:replace="${content}"></div>
+</main>
+</body>
+</html>
