@@ -1,0 +1,14 @@
+.env
+target/
+logs/
+.idea/
+.classpath
+.project
+.settings/
+*.log
+.m2repo/
+.mvn/
+target/
+logs/
+*.log
+*.gz
