@@ -1,0 +1,152 @@
+openapi: 3.0.3
+info:
+  title: ConnectSphere Platform API
+  version: 1.0.0
+  description: Consolidated API surface for the ConnectSphere microservices platform.
+servers:
+  - url: http://localhost:8080
+paths:
+  /api/v1/auth/register:
+    post:
+      summary: Register a new user
+      responses:
+        '201':
+          description: User registered
+  /api/v1/auth/login:
+    post:
+      summary: Login with email and password
+      responses:
+        '200':
+          description: Authenticated
+  /api/v1/auth/google:
+    post:
+      summary: Login with Google OAuth token
+      responses:
+        '200':
+          description: Authenticated
+  /api/v1/auth/github:
+    post:
+      summary: Login with GitHub OAuth authorization code
+      responses:
+        '200':
+          description: Authenticated
+  /posts:
+    get:
+      summary: List all posts
+      responses:
+        '200':
+          description: Posts returned
+    post:
+      summary: Create a post
+      responses:
+        '200':
+          description: Post created
+  /comments:
+    post:
+      summary: Add a comment
+      responses:
+        '200':
+          description: Comment created
+  /likes:
+    post:
+      summary: Add a reaction to a target
+      responses:
+        '200':
+          description: Reaction created
+  /follows:
+    post:
+      summary: Follow another user
+      responses:
+        '200':
+          description: Follow created
+  /notifications:
+    post:
+      summary: Create a notification
+      responses:
+        '200':
+          description: Notification created
+  /stories:
+    post:
+      summary: Create a story
+      responses:
+        '200':
+          description: Story created
+  /search:
+    get:
+      summary: Search posts
+      responses:
+        '200':
+          description: Search results returned
+  /hashtags/{tag}:
+    get:
+      summary: Get posts by hashtag
+      parameters:
+        - in: path
+          name: tag
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Hashtag results returned
+  /reports:
+    get:
+      summary: List moderation reports
+      responses:
+        '200':
+          description: Reports returned
+    post:
+      summary: Create a moderation report
+      responses:
+        '200':
+          description: Report created
+  /payments:
+    get:
+      summary: List payments
+      responses:
+        '200':
+          description: Payments returned
+    post:
+      summary: Create a payment
+      responses:
+        '200':
+          description: Payment created
+components:
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        role:
+          type: string
+    Post:
+      type: object
+      properties:
+        id:
+          type: integer
+        authorId:
+          type: integer
+        content:
+          type: string
+        visibility:
+          type: string
+    Notification:
+      type: object
+      properties:
+        id:
+          type: integer
+        receiverId:
+          type: integer
+        actorId:
+          type: integer
+        type:
+          type: string
+        message:
+          type: string
+        deepLinkUrl:
+          type: string

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connectsphere-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connectsphere-gateway
+  template:
+    metadata:
+      labels:
+        app: connectsphere-gateway
+    spec:
+      containers:
+        - name: apigateway
+          image: connectsphere/apigateway:latest
+          ports:
+            - containerPort: 8080
+          env:
+            - name: EUREKA_CLIENT_SERVICEURL_DEFAULTZONE
+              value: http://eurekaserver:8761/eureka
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apigateway
+spec:
+  selector:
+    app: connectsphere-gateway
+  ports:
+    - port: 8080
+      targetPort: 8080

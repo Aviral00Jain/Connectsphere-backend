@@ -1,0 +1,258 @@
+services:
+  mysql:
+    image: mysql:8.4
+    container_name: connectsphere-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: connectsphere-redis
+    ports:
+      - "6379:6379"
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: connectsphere-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: connectsphere-elasticsearch
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: false
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+
+  eurekaserver:
+    build: ./eurekaserver
+    container_name: connectsphere-eureka
+    ports:
+      - "8761:8761"
+
+  auth-service:
+    build: ./auth-service
+    container_name: connectsphere-auth
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/auth_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+    ports:
+      - "8081:8081"
+
+  post-service:
+    build: ./post-Service
+    container_name: connectsphere-post
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/post_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+      COMMENT_SERVICE_BASE_URL: http://comment-service:8083/comments
+      AUTH_ADMIN_BASE_URL: http://auth-service:8081/api/v1/admin/users
+    ports:
+      - "8082:8082"
+
+  comment-service:
+    build: ./comment-service
+    container_name: connectsphere-comment
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/comment_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+    ports:
+      - "8083:8083"
+
+  like-service:
+    build: ./like-service
+    container_name: connectsphere-like
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/connectsphere_like_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+    ports:
+      - "8084:8084"
+
+  follow-service:
+    build: ./follow-service
+    container_name: connectsphere-follow
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/connectsphere_follow_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      CONNECTSPHERE_RABBITMQ_NOTIFICATION_EXCHANGE: connectsphere.notifications.exchange
+      CONNECTSPHERE_RABBITMQ_NEW_FOLLOWER_ROUTING_KEY: notification.follow.created
+    ports:
+      - "8085:8085"
+
+  notification-service:
+    build: ./notification-service
+    container_name: connectsphere-notification
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/connectsphere_notification_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+      NOTIFICATION_AUTH_SERVICE_BASE_URL: http://auth-service:8081/api/v1/auth
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      CONNECTSPHERE_RABBITMQ_NOTIFICATION_EXCHANGE: connectsphere.notifications.exchange
+      CONNECTSPHERE_RABBITMQ_NEW_FOLLOWER_QUEUE: connectsphere.notifications.follow-created
+      CONNECTSPHERE_RABBITMQ_NEW_FOLLOWER_ROUTING_KEY: notification.follow.created
+    ports:
+      - "8086:8086"
+
+  media-service:
+    build: ./media-service
+    container_name: connectsphere-media
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/connectsphere_media_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+    ports:
+      - "8087:8087"
+
+  search-service:
+    build: ./search-service
+    container_name: connectsphere-search
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/connectsphere_search_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+    ports:
+      - "8088:8088"
+
+  payment-service:
+    build: ./payment-service
+    container_name: connectsphere-payment
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+      eurekaserver:
+        condition: service_started
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/connectsphere_payment_db
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+    ports:
+      - "8089:8089"
+
+  apigateway:
+    build: ./apigateway
+    container_name: connectsphere-gateway
+    env_file:
+      - .env
+    depends_on:
+      eurekaserver:
+        condition: service_started
+    environment:
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eurekaserver:8761/eureka
+    ports:
+      - "8080:8080"
+
+  connectsphere-web:
+    build: ./connectsphere-web
+    container_name: connectsphere-web
+    env_file:
+      - .env
+    depends_on:
+      apigateway:
+        condition: service_started
+    environment:
+      CONNECTSPHERE_GATEWAY_BASE_URL: http://apigateway:8080
+    ports:
+      - "8090:8090"
+
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: connectsphere-sonarqube
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_logs:/opt/sonarqube/logs
+      - sonar_extensions:/opt/sonarqube/extensions
+    restart: unless-stopped
+
+volumes:
+  mysql_data:
+  sonar_data:
+  sonar_logs:
+  sonar_extensions:

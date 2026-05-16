@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connectsphere-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: connectsphere-web
+  template:
+    metadata:
+      labels:
+        app: connectsphere-web
+    spec:
+      containers:
+        - name: connectsphere-web
+          image: connectsphere/connectsphere-web:latest
+          ports:
+            - containerPort: 8090
+          env:
+            - name: CONNECTSPHERE_GATEWAY_BASE_URL
+              value: http://apigateway:8080
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: connectsphere-web
+spec:
+  selector:
+    app: connectsphere-web
+  ports:
+    - port: 8090
+      targetPort: 8090

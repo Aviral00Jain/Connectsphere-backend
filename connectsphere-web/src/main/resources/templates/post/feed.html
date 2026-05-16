@@ -1,0 +1,1 @@
+<!DOCTYPE html><html xmlns:th="http://www.thymeleaf.org"><head><meta charset="UTF-8"><title>Feed</title><link rel="stylesheet" th:href="@{/css/app.css}"></head><body><div class="container"><h1>News Feed</h1><div class="grid"><div class="card" th:each="post : ${posts}"><h3 th:text="${post['content']}">Post</h3></div></div></div></body></html>
